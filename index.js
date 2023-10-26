@@ -28,20 +28,62 @@ async function run() {
     await client.connect();
 
     const servicesCollection = client.db("carDoctor").collection("services");
+    const checkoutCollection = client.db("carDoctor").collection("checkout");
 
     app.get("/services", async (req, res) => {
       const cursor = servicesCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
+
     app.get("/services/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const options = {
         // Include only the `title` and `imdb` fields in the returned document
-        projection: { title: 1, service_id: 1, price: 1 },
+        projection: { title: 1, service_id: 1, price: 1, img: 1 },
       };
       const result = await servicesCollection.findOne(query, options);
+      res.send(result);
+    });
+    // booking or checkout
+
+    app.get("/checkout", async (req, res) => {
+      let query = {};
+      if (req.query?.email) {
+        query = { email: req.query.email };
+      }
+      const result = await checkoutCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // put
+    app.patch("/checkout/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedStatus = req.body;
+      const updateDoc = {
+        $set: {
+          status: updatedStatus.status,
+        },
+      };
+      const result = await checkoutCollection.updateOne(filter, updateDoc);
+      console.log(updatedStatus);
+      res.send(result);
+    });
+
+    // delete
+    app.delete("/checkout/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await checkoutCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.post("/checkout", async (req, res) => {
+      const bookingInfo = req.body;
+      const result = await checkoutCollection.insertOne(bookingInfo);
       res.send(result);
     });
     // Send a ping to confirm a successful connection
